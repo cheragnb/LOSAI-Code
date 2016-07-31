@@ -1,0 +1,7 @@
+{
+    "event": "epochTime_timeZoneDB",
+    "url": "http://api.timezonedb.com/v2/get-time-zone?key=BPEI1JDWZ7AW&format=json&by=zone&zone=America/New_York",
+    "requestType": "POST",
+    "response template" = "{{status}}~{{timestamp}}",
+    "mydevices": true
+}
