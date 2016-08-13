@@ -1,3 +1,4 @@
+#include "ctype.h"
 
 bool weathergood = false;
 float temp_current = -1;
@@ -11,57 +12,65 @@ String predict_data = String(10);
 long epoch_time;
 String animation_seq;
 String temp_seq;
+char final_animations[]= {'e','e','e','e','e'};
+float final_temps[3]; //= {-400,-400,-400}; //impossible value
 
+#define A 1
 void setup() {
     Serial.begin(9600);
     Particle.subscribe("hook-response/weather_openWeatherMaps", currentWeatherHandler , MY_DEVICES);
     Particle.subscribe("hook-response/epochTime_timeZoneDB", epochTimeHandler, MY_DEVICES);
     Particle.subscribe("hook-response/forecast16_openWeatherMaps", dailyMinMaxHandler, MY_DEVICES);
     Particle.subscribe("hook-response/predict_openWeatherMaps", hourlyHandler, MY_DEVICES);
-  }
+}
 
 void loop() {
-  if (personInView()){
-    //TODO add stuff
-  }
-  if ( millis() > millis_current + check_time ) {
-    getData();  //gets data ever specified minute interval
-//    choseAnimation();
-  }
-  }
+     if (personInView()){
+        //TODO add stuff
+    }
+    if ( millis() > millis_current + check_time ) {
+        getData();  //gets data ever specified minute interval
+        choseAnimation();
+
+    }
+}
 
 void currentWeatherHandler(const char *event, const char *currentData) {
     animation_seq = "";
     temp_seq = "";
     Serial.println("Call made for current weather");
-    String str = String(currentData); // example: "~10dn~25.79~"" (icon~current temp)
-  //  Serial.println(str);
-    char strBuffer[15]= "";
-    str.toCharArray(strBuffer, 15);
+        String str = String(currentData); // example: "~10dn~25.79~"" (icon~current temp)
+    Serial.println(str);
+    char strBuffer[25]= "";
+    str.toCharArray(strBuffer, 25);
     String weather_condition_current = strtok(strBuffer, "~");
-    String temp_current = (strtok(NULL, "~"));
+    String temp_current = strtok(NULL,"~");
+    //Serial.println(weather_condition_current);
+    //TODO figure out repeat weather conditiojn
+    //  Serial.println(temp_current);
     animation_seq = animation_seq + "~" + weather_condition_current + "~";
     temp_seq = temp_seq + "~" + temp_current + "~";
-  }
+    //    Serial.println("----------");
+}
 
 void epochTimeHandler (const char*event, const char*epochData){
-  //current epoch time, we dont need this
+    //current epoch time, we dont need this
     String api_status;
     Serial.println("Call made for time");
-    String str = String(epochData);
+        String str = String(epochData);
     char strBuffer[15]= "";
     str.toCharArray(strBuffer, 15); // example: "~OK~12121212121~"
     api_status = strtok(strBuffer, "~");
     epoch_time = atol(strtok(NULL, "~"));
     /*Serial.println(api_status);*/
-  //  Serial.println(epoch_time);
-    }
+    //  Serial.println(epoch_time);
+}
 
 void dailyMinMaxHandler(const char *event, const char *dailyMinMaxData) {
-  //max min temp for 2 days. We probably dont need this.
+    //max min temp for 2 days. We probably dont need this.
     Serial.println("Call made for weather forecast");
-    String str = String(dailyMinMaxData); // example: "(epoch time day 1 ~ daily high ~ daily low ~ epoch time day 2 ~ daily high ~ daily low)"
-  //  Serial.println(str);
+        String str = String(dailyMinMaxData); // example: "(epoch time day 1 ~ daily high ~ daily low ~ epoch time day 2 ~ daily high ~ daily low)"
+    //  Serial.println(str);
     char strBuffer[50]= "";
     str.toCharArray(strBuffer,50);
     long epoch_time_1 = atol(strtok(strBuffer, "~"));
@@ -77,12 +86,12 @@ void dailyMinMaxHandler(const char *event, const char *dailyMinMaxData) {
     Serial.println(temp_max_2);
     Serial.println(temp_min_2);
     */
-    }
+}
 
 int hourlyHandler (const char*event, const char*predict_data){
     String str = String (predict_data);
     Serial.println("Call made for prediction");
-    //Serial.println(str);
+    Serial.println(str);
     char strBuffer[150]= "";
     str.toCharArray(strBuffer,150);
     String epoch_time_plus3 = (strtok(strBuffer, "~"));
@@ -101,92 +110,120 @@ int hourlyHandler (const char*event, const char*predict_data){
     temp_seq = temp_seq + temp_plus3 + "~" + temp_plus6 + "~"+ temp_plus9 + "~"+ temp_plus12 + "~" + "EOL"; //mark end of line
 }
 
-char choseAnimation (){
-    /* char animation
-    d = clear day n = clear night c = clouds  r = rain    t = thunder s = snow    m = mist   x = error */
-  //char animation = 'x';
-    String animation[4];
-    char strBuffer[20]= "";
-    animation_seq.toCharArray(strBuffer, 20);
-    animation[0] = strtok(strBuffer, "~");
-    animation[1] = strtok(NULL, "~");
-    animation[2] = strtok(NULL, "~");
-    animation[3] = strtok(NULL, "~");
-    int i = 0;
-    String animation_prev = "";
-    while (animation[i] != "EOL" ){
-    if (animation[i] != animation_prev){
-      display_animation(animation[i]);
-    }
-    animation_prev = animation[i];
-    i ++;
-  }
-/*
-    Original code
-    //check for clear day or night
-    if (weather_condition_current == "01d")    {animation = 'd';}
-    else if (weather_condition_current == "01n")   {animation = 'n';}
-    int status_trim = weather_condition_current.toInt();
-
-    //check rest of the conditions
-    if (status_trim == 2 || status_trim == 3 ||status_trim == 4){    animation = 'c' ;   }
-    else if (status_trim == 9 || status_trim == 10){    animation = 'r'; }
-    else if (status_trim == 11 ){ animation = 't' ; }
-    else if (status_trim == 13 ){animation = 's'; }
-    else if (status_trim == 50 ){animation = 'm' ;}
-    else {animation = 'x' ;}
-    return animation ;
-  }*/
-}
-
-
 void getData(void){
-  long wait = millis();
-  Serial.println("Begin Data Collection \n");
-  bool condition = false;
-  int count = 0;
-  while ( condition != true || count > 10) { //try untill we get the right data string
-  //publish in this order to maintain string
-  Particle.publish("weather_openWeatherMaps", currentData, PRIVATE); // Trigger the weather webhook
-  Particle.publish("epochTime_timeZoneDB", epochData, PRIVATE); // Trigger the time webhook
-  Particle.publish("forecast16_openWeatherMaps", dailyMinMaxData, PRIVATE); // Trigger the forecast webhook
-  Particle.publish("predict_openWeatherMaps", predict_data, PRIVATE); // Trigger the prediction webhook
-  while((millis() < wait + 3000UL))      {Spark.process();}
-  Serial.println(animation_seq);
-  Serial.println(temp_seq);
-
-  /*Serial.println(animation_seq.length());
-  Serial.println(animation_seq.substring(21));
-  Serial.println(temp_seq.length());
-  Serial.println(temp_seq.substring(31));
-*/
-
-  if ((animation_seq.length() == 24 && animation_seq.substring(21) == "EOL")&&
-  (temp_seq.length() == 34 && temp_seq.substring(31) == "EOL"))
-  {
-    condition = true;
-    break;
-  } //ensure constant animation codes*/
-  count ++;
-}
- if (count == 10 && condition == false) {
-  animation_seq = "~err~EOL";
-  temp_seq = "~err~EOL";
-}
-Serial.println("End Data Collection \n");
-millis_current = millis();  //reset timerk
+    long wait = millis();
+    Serial.println("Begin Data Collection \n");
+    bool condition = false;
+    int count = 0;
+    while ( condition != true && count < 10) { //try untill we get the right data string
+        //publish in this order to maintain string
+        Particle.publish("weather_openWeatherMaps", currentData, PRIVATE); // Trigger the weather webhook
+        //    Particle.publish("epochTime_timeZoneDB", epochData, PRIVATE); // Trigger the time webhook
+        //    Particle.publish("forecast16_openWeatherMaps", dailyMinMaxData, PRIVATE); // Trigger the forecast webhook
+        //while((millis() < wait + 1000UL))      {Spark.process();}
+        Particle.publish("predict_openWeatherMaps", predict_data, PRIVATE); // Trigger the prediction webhook
+        while((millis() < wait + 1000UL))      {Spark.process();}
+        if (animation_seq.length() > 19 && temp_seq.length() > 29)
+        {
+            condition = true;
+            break;
+        }
+        //ensure constant animation codes*/
+        count ++;
+        if (count > 9) { //give error if error in recieving data
+            animation_seq = "~err~EOL";
+            temp_seq = "~err~EOL";
+            break;
+        }
+    }
+    Serial.println(animation_seq);
+    Serial.println(temp_seq);
+    Serial.println("End Data Collection \n");
+    millis_current = millis();  //reset timerk
 }
 
 bool personInView(){
-  //TODO setup sensor currently working on trinket
-  if (digitalRead(D0)){
-  //  Serial.println("Person Detected!");
-    return true;
-  }
-  else return false;
-  }
+    //TODO setup sensor currently working on trinket
+    if (digitalRead(D0)){
+        //  Serial.println("Person Detected!");
+        return true;
+    }
+    else return false;
+    }
 
-void display_animation(String animation_code)
+void displayAnimation(String animation_code)
 {
-Serial.println(animation_code);
+    Serial.println(animation_code);
 }
+
+void choseAnimation(){
+    /*find only weather icon changes and consolidate images forecast16_openWeatherMaps
+    and convert to usable icons*/
+    Serial.println("choose animations");
+    char strBuffer[35]= "";
+
+    for (int j = 0 ; j < 5; j ++)   {final_animations[j] = 'e';}
+    animation_seq.toCharArray(strBuffer,35);
+    int i = 1;
+    String value = (strtok(strBuffer, "~"));
+    final_animations[0] = converter(value);
+    char previous = final_animations[0];
+    while (value != "EOL"){
+        value = strtok(NULL,"~");
+        char temp = converter(value);
+        if (temp != previous){
+            final_animations[i] = temp;
+            previous = temp;
+            i ++ ;
+        }
+    }
+    for (i = 0 ; i< 3; i ++){
+        Serial.println(final_animations[i]);
+    }
+
+    char numBuffer[35]= "";
+
+    temp_seq.toCharArray(numBuffer,35);
+    final_temps[0] = atof(strtok(numBuffer, "~"));
+    float min = 400;
+    float max = -400;
+    value = "";
+    while (true){
+        value = (strtok(NULL,"~"));
+        if (value == "EOL") break;
+
+        if (atof(value)<= min)  {
+            final_temps[1] = atof(value);
+            min = final_temps[1];
+        }
+
+        if(atof(value)>=max) {
+            final_temps[2] = atof(value);
+            max = final_temps[2];
+        }
+    }
+    for (i = 0 ; i < 3 ; i ++){
+        Serial.println(final_temps[i]);
+    }
+}
+
+char converter(String raw){
+    /*   n = clear night ; c = clear day ;
+    l = little cloudy; m = medium clowdy ; v = very cloudy;
+    d = drizzle ; r = rain ; t = thunderstorm
+    s = snow ; f = foggy/misty;
+    x = error ; q = quit ; e = eol*/
+
+    if (raw == "01d") return 'c';
+    else if (raw == "01n")  return 'n';
+    else if (raw == "02d" || raw == "02n")  return 'l';
+    else if (raw == "03d" || raw == "03n")  return 'm';
+    else if (raw == "04d" || raw == "04n")  return 'v';
+    else if (raw == "09d" || raw == "09n")  return 'd';
+    else if (raw == "10d" || raw == "10n")  return 'r';
+    else if (raw == "11d" || raw == "11n")  return 't';
+    else if (raw == "13d" || raw == "13n")  return 's';
+    else if (raw == "50d" || raw == "50n")  return 'f';
+    else if (raw == "EOL") return 'e';
+    else return 'x';
+    }

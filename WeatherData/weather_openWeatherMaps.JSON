@@ -1,11 +1,8 @@
 {
-  "event": "weather_openWeatherMaps",
-  "url": "http://api.openweathermap.org/data/2.5/weather?zip=19104,us&units=imperial&APPID=a21e59f6561f59ece27db2449d0f5fd1",
-  "requestType": "POST",
-  "headers": null,
-  "query": null,
-  "responseTemplate": "{{#weather}}~{{icon}}{{/weather}}~{{main.temp}}",
-  "json": null,
-  "auth": null,
-  "mydevices": true
+    "event": "weather_openWeatherMaps",
+    "url": "http://api.openweathermap.org/data/2.5/weather?zip=19104,us&units=imperial&count=1&APPID=a21e59f6561f59ece27db2449d0f5fd1",
+    "requestType": "POST",
+    "deviceID": "",
+     "responseTemplate": "{{#weather}}~{{icon}}{{/weather}}~{{main.temp}}",
+    "mydevices": true
 }

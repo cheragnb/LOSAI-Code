@@ -1,0 +1,1 @@
+"response template" = "{{#list}}~{{list.dt}}{{#main}}~{{main.temp}}{{/main}}{{#weather}}~{{weather.icon}}{{\weather}}{{\list}}",
